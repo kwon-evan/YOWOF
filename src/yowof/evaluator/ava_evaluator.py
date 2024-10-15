@@ -5,61 +5,66 @@ from collections import defaultdict
 import torch
 import json
 
-from dataset.ava import AVA_Dataset
-from dataset.ava_pose import AVA_Pose_Dataset
+from yowof.dataset.ava import AVA_Dataset
+from yowof.dataset.ava_pose import AVA_Pose_Dataset
 
 from .ava_eval_helper import (
     run_evaluation,
     read_csv,
     read_exclusions,
     read_labelmap,
-    write_results
+    write_results,
 )
 
 
-
 class AVA_Evaluator(object):
-    def __init__(self,
-                 device,
-                 d_cfg,
-                 img_size,
-                 len_clip,
-                 sampling_rate,
-                 transform,
-                 collate_fn,
-                 full_test_on_val=False,
-                 version='v2.2'):
+    def __init__(
+        self,
+        device,
+        d_cfg,
+        img_size,
+        len_clip,
+        sampling_rate,
+        transform,
+        collate_fn,
+        full_test_on_val=False,
+        version="v2.2",
+    ):
         self.device = device
         self.full_ava_test = full_test_on_val
         self.version = version
 
         # data
-        self.data_root = d_cfg['data_root']
-        self.backup_dir = d_cfg['backup_dir']
-        self.annotation_dir = os.path.join(d_cfg['data_root'], d_cfg['annotation_dir'])
-        self.labelmap_file = os.path.join(self.annotation_dir, d_cfg['labelmap_file'])
-        self.frames_dir = os.path.join(d_cfg['data_root'], d_cfg['frames_dir'])
-        self.frame_list = os.path.join(d_cfg['data_root'], d_cfg['frame_list'])
-        self.exclusion_file = os.path.join(self.annotation_dir, d_cfg['val_exclusion_file'])
-        self.gt_box_list = os.path.join(self.annotation_dir, d_cfg['val_gt_box_list'])
+        self.data_root = d_cfg["data_root"]
+        self.backup_dir = d_cfg["backup_dir"]
+        self.annotation_dir = os.path.join(d_cfg["data_root"], d_cfg["annotation_dir"])
+        self.labelmap_file = os.path.join(self.annotation_dir, d_cfg["labelmap_file"])
+        self.frames_dir = os.path.join(d_cfg["data_root"], d_cfg["frames_dir"])
+        self.frame_list = os.path.join(d_cfg["data_root"], d_cfg["frame_list"])
+        self.exclusion_file = os.path.join(
+            self.annotation_dir, d_cfg["val_exclusion_file"]
+        )
+        self.gt_box_list = os.path.join(self.annotation_dir, d_cfg["val_gt_box_list"])
 
         # load data
         self.excluded_keys = read_exclusions(self.exclusion_file)
         self.categories, self.class_whitelist = read_labelmap(self.labelmap_file)
         self.full_groundtruth = read_csv(self.gt_box_list, self.class_whitelist)
         self.mini_groundtruth = self.get_ava_mini_groundtruth(self.full_groundtruth)
-        _, self.video_idx_to_name = self.load_image_lists(self.frames_dir, self.frame_list, is_train=False)
+        _, self.video_idx_to_name = self.load_image_lists(
+            self.frames_dir, self.frame_list, is_train=False
+        )
 
-        if version == 'pose':
+        if version == "pose":
             # ava pose
             self.class_whitelist = set(list(self.class_whitelist)[:14])
             self.categories = self.categories[:14]
 
         # create output_json file
         os.makedirs(self.backup_dir, exist_ok=True)
-        self.backup_dir = os.path.join(self.backup_dir, 'ava_{}'.format(version))
+        self.backup_dir = os.path.join(self.backup_dir, "ava_{}".format(version))
         os.makedirs(self.backup_dir, exist_ok=True)
-        self.output_json = os.path.join(self.backup_dir, 'ava_detections.json')
+        self.output_json = os.path.join(self.backup_dir, "ava_detections.json")
 
         # dataset
         self.testset = AVA_Dataset(
@@ -68,22 +73,21 @@ class AVA_Evaluator(object):
             img_size=img_size,
             transform=transform,
             len_clip=len_clip,
-            sampling_rate=sampling_rate
+            sampling_rate=sampling_rate,
         )
         self.num_classes = self.testset.num_classes
         self.all_preds = []
 
         # dataloader
         self.testloader = torch.utils.data.DataLoader(
-            dataset=self.testset, 
+            dataset=self.testset,
             batch_size=8,
             shuffle=False,
-            collate_fn=collate_fn, 
+            collate_fn=collate_fn,
             num_workers=4,
             drop_last=False,
-            pin_memory=True
-            )
-
+            pin_memory=True,
+        )
 
     def get_ava_mini_groundtruth(self, full_groundtruth):
         """
@@ -101,7 +105,6 @@ class AVA_Evaluator(object):
                 if int(key.split(",")[1]) % 4 == 0:
                     ret[i][key] = full_groundtruth[i][key]
         return ret
-
 
     def load_image_lists(self, frames_dir, frame_list, is_train):
         """
@@ -154,10 +157,8 @@ class AVA_Evaluator(object):
 
         return image_paths, video_idx_to_name
 
-
     def update_stats(self, preds):
         self.all_preds.extend(preds)
-
 
     def get_ava_eval_data(self):
         out_scores = defaultdict(list)
@@ -176,7 +177,7 @@ class AVA_Evaluator(object):
             assert len(cls_out) == 80
 
             video = self.video_idx_to_name[video_idx]
-            key = video + ',' + "%04d" % (sec)
+            key = video + "," + "%04d" % (sec)
             box = [box[1], box[0], box[3], box[2]]  # turn to y1,x1,y2,x2
 
             for cls_idx, score in enumerate(cls_out):
@@ -187,7 +188,6 @@ class AVA_Evaluator(object):
                     count += 1
 
         return out_boxes, out_labels, out_scores
-
 
     def calculate_mAP(self, epoch):
         eval_start = time.time()
@@ -200,10 +200,17 @@ class AVA_Evaluator(object):
         print("Evaluating with %d unique GT frames." % len(groundtruth[0]))
         print("Evaluating with %d unique detection frames" % len(detections[0]))
 
-        write_results(detections, os.path.join(self.backup_dir, "detections_{}.csv".format(epoch)))
-        write_results(groundtruth, os.path.join(self.backup_dir, "groundtruth_{}.csv".format(epoch)))
-        results = run_evaluation(self.categories, groundtruth, detections, self.excluded_keys)
-        with open(self.output_json, 'w') as fp:
+        write_results(
+            detections, os.path.join(self.backup_dir, "detections_{}.csv".format(epoch))
+        )
+        write_results(
+            groundtruth,
+            os.path.join(self.backup_dir, "groundtruth_{}.csv".format(epoch)),
+        )
+        results = run_evaluation(
+            self.categories, groundtruth, detections, self.excluded_keys
+        )
+        with open(self.output_json, "w") as fp:
             json.dump(results, fp)
         print("Save eval results in {}".format(self.output_json))
 
@@ -211,19 +218,17 @@ class AVA_Evaluator(object):
 
         return results["PascalBoxes_Precision/mAP@0.5IOU"]
 
-
     def evaluate_frame_map_stream(self, model, epoch=1):
         model.eval()
 
         # initalize model
         model.initialization = True
-        model.set_inference_mode(mode='stream')
+        model.set_inference_mode(mode="stream")
 
         # inference
-        prev_video_id = ''
-        prev_video_sec = ''
+        prev_video_id = ""
+        prev_video_sec = ""
         for iter_i, (key_frame_info, video_clip, target) in enumerate(self.testset):
-
             # ex: video_id: 1204, sec: 900
             if iter_i == 0:
                 prev_video_id = key_frame_info[0]
@@ -237,7 +242,7 @@ class AVA_Evaluator(object):
                 model.initialization = True
 
             # prepare
-            video_clip = video_clip.unsqueeze(0).to(self.device) # [B, T, 3, H, W], B=1
+            video_clip = video_clip.unsqueeze(0).to(self.device)  # [B, T, 3, H, W], B=1
 
             with torch.no_grad():
                 # inference
@@ -251,7 +256,9 @@ class AVA_Evaluator(object):
                 sec = key_frame_info[1]
 
                 # [[[x1, y1, x2, y2], cls_out, [video_idx, sec]], ...]
-                preds_list = [[bbox[:4].tolist(), bbox[4:], [video_idx, sec]] for bbox in bboxes]
+                preds_list = [
+                    [bbox[:4].tolist(), bbox[4:], [video_idx, sec]] for bbox in bboxes
+                ]
 
             self.update_stats(preds_list)
             if iter_i % 500 == 0:
@@ -267,16 +274,16 @@ class AVA_Evaluator(object):
 
         return mAP
 
-
     def evaluate_frame_map(self, model, epoch=1):
         model.eval()
 
         # initalize model
-        model.set_inference_mode(mode='clip')
+        model.set_inference_mode(mode="clip")
 
         # inference
-        for iter_i, (batch_key_frame_info, batch_video_clip, _) in enumerate(self.testloader):
-
+        for iter_i, (batch_key_frame_info, batch_video_clip, _) in enumerate(
+            self.testloader
+        ):
             # prepare
             batch_video_clip = batch_video_clip.to(self.device)
 
@@ -298,7 +305,7 @@ class AVA_Evaluator(object):
                         x1, y1, x2, y2 = bbox[:4].tolist()
                         cls_out = bbox[4:]
 
-                        preds_list.append([[x1,y1,x2,y2], cls_out, [video_idx, sec]])
+                        preds_list.append([[x1, y1, x2, y2], cls_out, [video_idx, sec]])
 
             self.update_stats(preds_list)
             if iter_i % 100 == 0:
