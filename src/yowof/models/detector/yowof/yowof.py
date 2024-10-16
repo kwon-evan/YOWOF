@@ -269,7 +269,7 @@ class YOWOF(nn.Module):
         bboxes = bboxes.cpu().numpy()
 
         # nms
-        keep = np.zeros(len(bboxes), dtype=np.int)
+        keep = np.zeros(len(bboxes), dtype=np.int64)
         for i in range(self.num_classes):
             inds = np.where(labels == i)[0]
             if len(inds) == 0:

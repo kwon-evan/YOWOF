@@ -206,6 +206,7 @@ class Criterion(object):
             [t["boxes"][i] for t, (_, i) in zip(targets, indices)], dim=0
         ).to(self.device)
         tgt_boxes = tgt_boxes[~pos_ignore_idx]
+        src_idx = src_idx.to(self.device)
         matched_pred_box = box_pred.reshape(-1, 4)[src_idx[~pos_ignore_idx]]
         loss_bboxes = self.loss_bboxes(matched_pred_box, tgt_boxes, num_foreground)
 

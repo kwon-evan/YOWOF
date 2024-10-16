@@ -6,13 +6,14 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, DistributedSampler
 
-from yowof.dataset.ucf_jhmdb import UCF_JHMDB_Dataset
 from yowof.dataset.ava import AVA_Dataset
 from yowof.dataset.ava_pose import AVA_Pose_Dataset
+from yowof.dataset.custom import CustomDataset
 from yowof.dataset.transforms import Augmentation, BaseTransform
-
-from yowof.evaluator.ucf_jhmdb_evaluator import UCF_JHMDB_Evaluator
+from yowof.dataset.ucf_jhmdb import UCF_JHMDB_Dataset
 from yowof.evaluator.ava_evaluator import AVA_Evaluator
+from yowof.evaluator.ucf_jhmdb_evaluator import UCF_JHMDB_Evaluator
+from yowof.evaluator.custom_evaluator import Custom_Evaluator
 
 
 def build_dataset(device, d_cfg, args, is_train=False):
@@ -138,6 +139,30 @@ def build_dataset(device, d_cfg, args, is_train=False):
             version="pose",
         )
 
+    elif args.dataset == "custom":
+        # dataset
+        dataset = CustomDataset(
+            data_root=d_cfg["data_root"],
+            img_size=d_cfg["train_size"],
+            transform=augmentation,
+            len_clip=d_cfg["len_clip"],
+            sampling_rate=d_cfg["sampling_rate"],
+        )
+        num_classes = 3
+
+        # evaluator
+        evaluator = Custom_Evaluator(
+            device=device,
+            data_root=d_cfg["data_root"],
+            dataset=args.dataset,
+            model_name=args.version,
+            img_size=d_cfg["test_size"],
+            len_clip=d_cfg["len_clip"],
+            conf_thresh=0.01,
+            iou_thresh=0.5,
+            transform=basetransform,
+            gt_folder=d_cfg["gt_folder"],
+        )
     else:
         print("unknow dataset !!")
         exit(0)
@@ -353,3 +378,4 @@ class Softmax_FocalLoss(nn.Module):
             loss = loss.sum()
 
         return loss
+

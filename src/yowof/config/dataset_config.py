@@ -179,6 +179,48 @@ dataset_config = {
                     'swim',
                     'walk'
                 ),        
-    }
-
+    },
+    "custom": {
+        # dataset
+        "data_root": "/home/bom/바탕화면/datasets/089.화재 발생 예측 영상_고도화_영상 기반 화재 감시 및 발생 위치 탐지 데이터",
+        "gt_folder": "./evaluator/groundtruths_ucf_jhmdb/groundtruths_ucf/",
+        # input size
+        "train_size": 320,
+        "test_size": 320,
+        # transform
+        "pixel_mean": [0.485, 0.456, 0.406],
+        "pixel_std": [0.229, 0.224, 0.225],
+        "jitter": 0.2,
+        "hue": 0.1,
+        "saturation": 1.5,
+        "exposure": 1.5,
+        "sampling_rate": 1,
+        "len_clip": 16,
+        # cls label
+        "multi_hot": False,  # one hot
+        # post process
+        "conf_thresh": 0.3,
+        "nms_thresh": 0.2,
+        "conf_thresh_val": 0.005,
+        "nms_thresh_val": 0.5,
+        # optimizer
+        "optimizer": "adamw",
+        "momentum": 0.9,
+        "weight_decay": 1e-4,
+        "max_epoch": 5,
+        "lr_epoch": [1, 2, 3, 4],
+        "base_lr": 1e-4,
+        "lr_decay_ratio": 0.5,
+        # warmup strategy
+        "warmup": "linear",
+        "warmup_factor": 0.00066667,
+        "wp_iter": 500,
+        # class names
+        "valid_num_classes": 3,
+        "label_map": (
+            "Fire",
+            "Smoke",
+            "Normal",
+        ),
+    },
 }
