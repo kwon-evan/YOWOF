@@ -126,7 +126,7 @@ class CustomDataset(Dataset):
         target = []
         for i in annotation["annotations"]:
             x, y, w, h = i["bbox"]  # center x, center y, width, height
-            x1, y1, x2, y2 = x / ow, y / oh, (x + w) / ow, (y + h) / oh
+            x1, y1, x2, y2 = x, y, (x + w), (y + h)
             target.append([x1, y1, x2, y2, i["categories_id"]])
 
 
