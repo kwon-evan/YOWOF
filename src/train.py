@@ -281,7 +281,7 @@ def train():
                 # basic infor
                 log = "[Epoch: {}/{}]".format(epoch + 1, max_epoch)
                 log += "[Iter: {}/{}]".format(iter_i, epoch_size)
-                log += "[lr: {:.6f}]".format(cur_lr[0])
+                log += "[lr: {:.2f}]".format(cur_lr[0])
                 # loss infor
                 for k in loss_dict_reduced.keys():
                     log += "[{}: {:.2f}]".format(k, loss_dict[k])

@@ -77,6 +77,7 @@ def multi_hot_vis(args, frame, out_bboxes, orig_w, orig_h, class_names, act_pose
     # visualize detection results
     for bbox in out_bboxes:
         x1, y1, x2, y2 = bbox[:4]
+
         if act_pose:
             # only show 14 poses of AVA.
             cls_out = bbox[4 : 4 + 14]
@@ -135,13 +136,17 @@ def detect(args, d_cfg, model, device, transform, class_names, class_colors):
 
     # path to video
     path_to_video = os.path.join(args.video)
+    video_name = os.path.basename(path_to_video)
+    if video_name.endswith(".mp4"):
+        video_name = video_name.replace(".mp4", ".avi")
 
     # video
     video = cv2.VideoCapture(path_to_video)
-    fourcc = cv2.VideoWriter_fourcc(*"XVID")
+    fourcc = cv2.VideoWriter.fourcc(*"XVID")
     save_size = (640, 480)
-    save_name = os.path.join(save_path, "detection.avi")
-    fps = 20.0
+    save_name = os.path.join(save_path, video_name)
+    print(f"Video saved to {save_name}.")
+    fps = 30.0
     out = cv2.VideoWriter(save_name, fourcc, fps, save_size)
 
     # run
@@ -185,7 +190,7 @@ def detect(args, d_cfg, model, device, transform, class_names, class_colors):
                 outputs = outputs
 
             # vis detection results
-            if args.dataset in ["ava_v2.2"]:
+            if args.dataset in ["ava_v2.2", "custom"]:
                 # multi hot
                 frame = multi_hot_vis(
                     args=args,
