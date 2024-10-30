@@ -62,23 +62,17 @@ class CustomDataset(Dataset):
     def pull_item(self, image_path):
         """load a data"""
 
-        img_split = image_path.split("/")
+        _, data_dir, stage, vid_id, filename = image_path.split("/")
+
         # image name
-        img_info = img_split[-1].split(".")[0]
-        vid_id, cls, place, img_id = img_info.split("_")
-        img_id = int(img_id)
+        img_id = int(filename.split(".")[0][-5:])
+        img_folder = os.path.join(self.data_root, data_dir, stage, vid_id)
 
         # path to label
         label_path = os.path.join(
             self.data_root,
-            *img_split[1:4],
-            "02.라벨링데이터",
-            *img_split[5:10],
-            "JSON",
-            img_info + ".json",
+            image_path.replace(".jpg", ".json"),
         )
-
-        img_folder = os.path.join(self.data_root, *img_split[:-1])
 
         # frame numbers
         max_num = len(os.listdir(img_folder))
@@ -100,18 +94,17 @@ class CustomDataset(Dataset):
                 img_id_temp = max_num
 
             # load a frame
+            img_info = filename.split(".")[0]
+            filename_tmp = f"{img_info[:-5]}{img_id_temp:05d}.jpg"
             path_tmp = os.path.join(
-                self.data_root,
-                *img_split[:-2],
-                "JPG",
-                f"{vid_id}_{cls}_{place}_{img_id_temp:05d}.jpg",
+                img_folder,
+                filename_tmp,
             )
             frame = Image.open(path_tmp).convert("RGB")
             ow, oh = frame.width, frame.height
 
             video_clip.append(frame)
 
-            # frame_id = img_split[1] + "_" + img_split[2] + "_" + img_split[3]
             frame_id = img_info
 
         # load an annotation
@@ -125,6 +118,9 @@ class CustomDataset(Dataset):
         ow, oh = annotation["image"]["width"], annotation["image"]["height"]
         target = []
         for i in annotation["annotations"]:
+            if "bbox" not in i.keys():
+                continue
+
             x, y, w, h = i["bbox"]  # center x, center y, width, height
             x1, y1, x2, y2 = x, y, (x + w), (y + h)
             target.append([x1, y1, x2, y2, i["categories_id"]])
@@ -153,7 +149,7 @@ if __name__ == "__main__":
     from yowof.dataset.transforms import Augmentation, BaseTransform
 
     # data_root = "D:/python_work/spatial-temporal_action_detection/dataset/ucf24"
-    data_root = "/home/bom/바탕화면/datasets/089.화재 발생 예측 영상_고도화_영상 기반 화재 감시 및 발생 위치 탐지 데이터"
+    data_root = "/home/bom/바탕화면/datasets/yowof-fire-dataset"
     dataset = "custom"
     is_train = True
     img_size = 224

@@ -261,7 +261,7 @@ dataset_config = {
     },
     "custom": {
         # dataset
-        "data_root": "/home/bom/바탕화면/datasets/089.화재 발생 예측 영상_고도화_영상 기반 화재 감시 및 발생 위치 탐지 데이터",
+        "data_root": "/home/bom/바탕화면/datasets/yowof-fire-dataset",
         "gt_folder": "./evaluator/groundtruths_ucf_jhmdb/groundtruths_ucf/",
         # input size
         "train_size": 320,
@@ -276,7 +276,7 @@ dataset_config = {
         "sampling_rate": 1,
         "len_clip": 16,
         # cls label
-        "multi_hot": True,
+        "multi_hot": False,
         # post process
         "conf_thresh": 0.1,
         "nms_thresh": 0.2,
