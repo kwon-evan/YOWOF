@@ -151,7 +151,18 @@ def build_dataset(device, d_cfg, args, is_train=False):
         num_classes = 3
 
         # evaluator
-        evaluator = None
+        evaluator = Custom_Evaluator(
+            device=device,
+            data_root=d_cfg["data_root"],
+            dataset=args.dataset,
+            model_name=args.version,
+            img_size=d_cfg["test_size"],
+            len_clip=d_cfg["len_clip"],
+            conf_thresh=0.01,
+            iou_thresh=0.5,
+            transform=basetransform,
+            gt_folder=d_cfg["gt_folder"],
+        )
     else:
         print("unknow dataset !!")
         exit(0)
@@ -367,4 +378,3 @@ class Softmax_FocalLoss(nn.Module):
             loss = loss.sum()
 
         return loss
-

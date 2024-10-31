@@ -15,6 +15,7 @@ dependencies = [
     "matplotlib",
     "numpy",
     "imageio>=2.36.0",
+    "torchmetrics>=1.5.1",
 ]
 requires-python = ">=3.10"
 readme = "README.md"
