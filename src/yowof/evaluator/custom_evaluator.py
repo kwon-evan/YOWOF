@@ -17,8 +17,6 @@ class Custom_Evaluator(object):
         conf_thresh=0.01,
         iou_thresh=0.5,
         transform=None,
-        gt_folder=None,
-        save_path=None,
     ):
         self.device = device
         self.data_root = data_root
@@ -43,7 +41,8 @@ class Custom_Evaluator(object):
         self.num_classes = self.testset.num_classes
 
         self.metric = MeanAveragePrecision(
-            iou_thresholds=[0.5, 0.75, 0.9], class_metrics=True
+            iou_thresholds=[0.5, 0.75, 0.9],
+            class_metrics=True,
         )
 
     @torch.no_grad()

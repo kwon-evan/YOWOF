@@ -7,6 +7,7 @@ from yowof.config import build_dataset_config, build_model_config
 from yowof.dataset.transforms import BaseTransform
 from yowof.evaluator.ava_evaluator import AVA_Evaluator
 from yowof.evaluator.ucf_jhmdb_evaluator import UCF_JHMDB_Evaluator
+from yowof.evaluator.custom_evaluator import Custom_Evaluator
 from yowof.models.detector import build_model
 from yowof.utils.misc import CollateFunc, load_weight
 
@@ -101,6 +102,22 @@ def ava_eval(device, d_cfg, model, transform, version="v2.2"):
     evaluator.evaluate_frame_map(model)
 
 
+def custom_eval(device, args, d_cfg, model, transform):
+    evaluator = Custom_Evaluator(
+        device=device,
+        dataset=args.dataset,
+        model_name=args.version,
+        data_root=d_cfg["data_root"],
+        img_size=d_cfg["test_size"],
+        len_clip=d_cfg["len_clip"],
+        conf_thresh=0.01,
+        iou_thresh=0.5,
+        transform=transform,
+    )
+
+    evaluator.evaluate_frame_map(model)
+
+
 if __name__ == "__main__":
     args = parse_args()
     # dataset
@@ -117,6 +134,9 @@ if __name__ == "__main__":
     elif args.dataset == "ava_pose":
         num_classes = 14
         version = "pose"
+
+    elif args.dataset == "custom":
+        num_classes = 2
 
     else:
         print("unknow dataset.")
@@ -169,4 +189,8 @@ if __name__ == "__main__":
             model=model,
             transform=basetransform,
             version=version,
+        )
+    elif args.dataset == "custom":
+        custom_eval(
+            device=device, args=args, d_cfg=d_cfg, model=model, transform=basetransform
         )
