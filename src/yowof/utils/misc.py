@@ -148,20 +148,21 @@ def build_dataset(device, d_cfg, args, is_train=False):
             len_clip=d_cfg["len_clip"],
             sampling_rate=d_cfg["sampling_rate"],
         )
-        num_classes = 3
+        num_classes = 2
 
         # evaluator
-        evaluator = Custom_Evaluator(
-            device=device,
-            data_root=d_cfg["data_root"],
-            dataset=args.dataset,
-            model_name=args.version,
-            img_size=d_cfg["test_size"],
-            len_clip=d_cfg["len_clip"],
-            conf_thresh=0.01,
-            iou_thresh=0.5,
-            transform=basetransform,
-        )
+        # evaluator = Custom_Evaluator(
+        #     device=device,
+        #     data_root=d_cfg["data_root"],
+        #     dataset=args.dataset,
+        #     model_name=args.version,
+        #     img_size=d_cfg["test_size"],
+        #     len_clip=d_cfg["len_clip"],
+        #     conf_thresh=0.01,
+        #     iou_thresh=0.5,
+        #     transform=basetransform,
+        # )
+        evaluator = None
     else:
         print("unknow dataset !!")
         exit(0)

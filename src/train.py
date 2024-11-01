@@ -12,7 +12,7 @@ from copy import deepcopy  # noqa E402
 import numpy as np  # noqa E402
 import torch  # noqa E402
 import torch.backends.cudnn as cudnn  # noqa E402
-import torch.cuda.amp as amp  # noqa E402
+import torch.amp as amp  # noqa E402
 import torch.distributed as dist  # noqa E402
 from torch.nn.parallel import DistributedDataParallel as DDP  # noqa E402
 from torch.optim.lr_scheduler import MultiStepLR  # noqa E402
@@ -239,7 +239,7 @@ def train():
 
             # inference
             if args.fp16:
-                with torch.cuda.amp.autocast(enabled=args.fp16):
+                with torch.amp.autocast("cuda", enabled=args.fp16):
                     loss_dict = model(video_clips, targets=targets)
             else:
                 loss_dict = model(video_clips, targets=targets)
@@ -347,7 +347,10 @@ def train():
                     # set train mode.
                     model_eval.trainable = True
                     model_eval.train()
-                    model.set_inference_mode(mode="clip")
+                    if args.distributed:
+                        model.module.set_inference_mode(mode="clip")
+                    else:
+                        model.set_inference_mode(mode="clip")
 
             if args.distributed:
                 # wait for all processes to synchronize

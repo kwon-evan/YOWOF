@@ -1,3 +1,4 @@
+import time
 import torch
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
@@ -43,6 +44,8 @@ class Custom_Evaluator(object):
         self.metric = MeanAveragePrecision(
             iou_thresholds=[0.5, 0.75, 0.9],
             class_metrics=True,
+            sync_on_compute=False,
+            dist_sync_on_step=True,
         )
 
     @torch.no_grad()
@@ -54,7 +57,7 @@ class Custom_Evaluator(object):
         model.set_inference_mode(mode="stream")
 
         # inference
-        total_map = 0
+        tic = time.time()
         for iter_i, (frame_id, video_clip, target) in enumerate(self.testset):
             video_clip = video_clip.unsqueeze(0).to(self.device)  # [B, T, 3, H, W], B=1
 
@@ -64,23 +67,23 @@ class Custom_Evaluator(object):
             orig_size = target["orig_size"].tolist()
             bboxes = rescale_bboxes(bboxes, orig_size)
 
-            preds = {
-                "boxes": bboxes,
-                "scores": scores,
-                "labels": labels,
+            pred = {
+                "boxes": torch.from_numpy(bboxes),
+                "scores": torch.from_numpy(scores),
+                "labels": torch.from_numpy(labels),
             }
 
-            map_dict = self.metric(preds, target)
-            total_map += map_dict["map"]
-
-            print(
-                f"Epoch {epoch}: {iter_i}/{epoch_size} | {frame_id} | mAP: {map_dict['map']:.4f}"
-            )
-            print(map_dict)
-
-        avg_map = total_map / epoch_size
-        print(f"Epoch {epoch} | mAP: {avg_map:.4f}")
+            self.metric.update([pred], [target])
+            if iter_i % 10 == 0:
+                toc = time.time()
+                print(f"Epoch {epoch}: {iter_i}/{epoch_size} | {frame_id} | time: {toc - tic:.4f}")
+                tic = toc
+        
+        map_dict = self.metric.compute()
+        print(f"Epoch {epoch} | mAP: {map_dict['map']:.4f}")
+        print(map_dict)
         print("-----------------------------------")
+        
 
     def evaluate_video_map(self, model, epoch=1):
         raise NotImplementedError
