@@ -40,6 +40,15 @@ class Custom_Evaluator(object):
             sampling_rate=1,
         )
         self.num_classes = self.testset.num_classes
+        self.dataloader = torch.utils.data.DataLoader(
+            dataset=self.testset,
+            shuffle=False,
+            collate_fn=None,
+            num_workers=8,
+            batch_size=8,
+            drop_last=False,
+            pin_memory=True,
+        )
 
         self.metric = MeanAveragePrecision(
             iou_thresholds=[0.5, 0.75, 0.9],
@@ -51,39 +60,41 @@ class Custom_Evaluator(object):
     @torch.no_grad()
     def evaluate_frame_map(self, model, epoch=1, show_pr_curve=False):
         print("Metric: Frame mAP")
-        epoch_size = len(self.testset)
+        epoch_size = len(self.dataloader)
 
         # init model
         model.set_inference_mode(mode="stream")
 
         # inference
         tic = time.time()
-        for iter_i, (frame_id, video_clip, target) in enumerate(self.testset):
-            video_clip = video_clip.unsqueeze(0).to(self.device)  # [B, T, 3, H, W], B=1
+        for iter_i, (frame_ids, video_clips, targets) in enumerate(self.dataloader):
+            video_clips = video_clips.to(self.device)
 
-            scores, labels, bboxes = model(video_clip)
+            scores, labels, bboxes = model(video_clips)
 
             # rescale bboxes
-            orig_size = target["orig_size"].tolist()
+            orig_size = targets["orig_size"][0].tolist()
             bboxes = rescale_bboxes(bboxes, orig_size)
+            pred = [
+                dict(
+                    boxes=torch.from_numpy(bboxes),
+                    scores=torch.from_numpy(scores),
+                    labels=torch.from_numpy(labels),
+                )
+            ]
+            targets["boxes"] = targets["boxes"].squeeze()
+            targets["labels"] = targets["labels"].squeeze()
 
-            pred = {
-                "boxes": torch.from_numpy(bboxes),
-                "scores": torch.from_numpy(scores),
-                "labels": torch.from_numpy(labels),
-            }
-
-            self.metric.update([pred], [target])
+            self.metric.update(pred, [targets])
             if iter_i % 10 == 0:
                 toc = time.time()
-                print(f"Epoch {epoch}: {iter_i}/{epoch_size} | {frame_id} | time: {toc - tic:.4f}")
+                print(f"Epoch {epoch}: {iter_i}/{epoch_size} | time: {toc - tic:.4f}")
                 tic = toc
-        
+
         map_dict = self.metric.compute()
         print(f"Epoch {epoch} | mAP: {map_dict['map']:.4f}")
         print(map_dict)
         print("-----------------------------------")
-        
 
     def evaluate_video_map(self, model, epoch=1):
         raise NotImplementedError
@@ -91,3 +102,4 @@ class Custom_Evaluator(object):
 
 if __name__ == "__main__":
     pass
+

@@ -3,6 +3,7 @@ import cv2
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
 
+import datetime # noqa E402
 import argparse  # noqa E402
 import os  # noqa E402
 import random  # noqa E402
